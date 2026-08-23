@@ -65,6 +65,9 @@ app.post('/api/upload', uploadMiddleware, (req, res) => {
   });
 });
 
+const { extractText } = require('./controllers/extractController');
+app.post('/api/extract', extractText);
+
 app.get('/api/health', (req, res) => {
   res.json({ status: "ok" });
 });
