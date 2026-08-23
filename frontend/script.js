@@ -399,7 +399,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (suggestResult.audio_suggestions && suggestResult.audio_suggestions.length > 0) {
                     suggestResult.audio_suggestions.forEach(suggestion => {
                         const li = document.createElement('li');
-                        li.textContent = suggestion;
+                        if (typeof suggestion === 'object' && suggestion.title && suggestion.url) {
+                            const a = document.createElement('a');
+                            a.href = suggestion.url;
+                            a.textContent = suggestion.title;
+                            a.target = '_blank';
+                            a.rel = 'noopener noreferrer';
+                            li.appendChild(a);
+                        } else {
+                            li.textContent = suggestion;
+                        }
                         audioSuggestionsList.appendChild(li);
                     });
                 }

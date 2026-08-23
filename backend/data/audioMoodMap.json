@@ -1,37 +1,37 @@
 {
   "upbeat/energetic": [
-    "Fast-paced electronic with heavy bass",
-    "Pop rock with driving guitars",
-    "Up-tempo synthwave",
-    "High-energy hip hop beat"
+    { "title": "Fast-paced electronic with heavy bass", "url": "https://pixabay.com/music/search/upbeat%20electronic/" },
+    { "title": "Pop rock with driving guitars", "url": "https://pixabay.com/music/search/pop%20rock/" },
+    { "title": "Up-tempo synthwave", "url": "https://pixabay.com/music/search/synthwave/" },
+    { "title": "High-energy hip hop beat", "url": "https://pixabay.com/music/search/hip%20hop/" }
   ],
   "calm/reflective": [
-    "Acoustic guitar fingerpicking",
-    "Soft ambient pads with light piano",
-    "Lo-fi chillhop",
-    "Gentle orchestral strings"
+    { "title": "Acoustic guitar fingerpicking", "url": "https://pixabay.com/music/search/acoustic%20guitar/" },
+    { "title": "Soft ambient pads with light piano", "url": "https://pixabay.com/music/search/ambient%20piano/" },
+    { "title": "Lo-fi chillhop", "url": "https://pixabay.com/music/search/lofi/" },
+    { "title": "Gentle orchestral strings", "url": "https://pixabay.com/music/search/orchestral/" }
   ],
   "corporate/minimal": [
-    "Subtle marimba and light percussion",
-    "Minimalist tech house beat",
-    "Neutral ambient drone",
-    "Light acoustic strumming"
+    { "title": "Subtle marimba and light percussion", "url": "https://pixabay.com/music/search/corporate/" },
+    { "title": "Minimalist tech house beat", "url": "https://pixabay.com/music/search/tech%20house/" },
+    { "title": "Neutral ambient drone", "url": "https://pixabay.com/music/search/ambient%20drone/" },
+    { "title": "Light acoustic strumming", "url": "https://pixabay.com/music/search/acoustic/" }
   ],
   "dramatic/cinematic": [
-    "Building orchestral strings",
-    "Heavy cinematic percussion",
-    "Dark synth pulses",
-    "Epic brass swells"
+    { "title": "Building orchestral strings", "url": "https://pixabay.com/music/search/cinematic%20strings/" },
+    { "title": "Heavy cinematic percussion", "url": "https://pixabay.com/music/search/cinematic%20percussion/" },
+    { "title": "Dark synth pulses", "url": "https://pixabay.com/music/search/dark%20synth/" },
+    { "title": "Epic brass swells", "url": "https://pixabay.com/music/search/epic/" }
   ],
   "playful/fun": [
-    "Quirky ukulele and whistling",
-    "Bouncy synth pop",
-    "Light jazz piano",
-    "Upbeat funk groove"
+    { "title": "Quirky ukulele and whistling", "url": "https://pixabay.com/music/search/ukulele/" },
+    { "title": "Bouncy synth pop", "url": "https://pixabay.com/music/search/synth%20pop/" },
+    { "title": "Light jazz piano", "url": "https://pixabay.com/music/search/jazz%20piano/" },
+    { "title": "Upbeat funk groove", "url": "https://pixabay.com/music/search/funk/" }
   ],
   "default": [
-    "Trending pop instrumental",
-    "Neutral lo-fi beat",
-    "Light acoustic background"
+    { "title": "Trending pop instrumental", "url": "https://pixabay.com/music/search/pop/" },
+    { "title": "Neutral lo-fi beat", "url": "https://pixabay.com/music/search/lofi/" },
+    { "title": "Light acoustic background", "url": "https://pixabay.com/music/search/acoustic/" }
   ]
 }
