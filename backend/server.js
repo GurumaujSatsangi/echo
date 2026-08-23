@@ -81,6 +81,9 @@ app.post('/api/score', scoreText);
 const { rewriteText } = require('./controllers/rewriteController');
 app.post('/api/rewrite', rewriteText);
 
+const { suggestContent } = require('./controllers/suggestController');
+app.post('/api/suggest', suggestContent);
+
 app.get('/api/health', (req, res) => {
   res.json({ status: "ok" });
 });

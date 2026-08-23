@@ -1,0 +1,37 @@
+{
+  "upbeat/energetic": [
+    "Fast-paced electronic with heavy bass",
+    "Pop rock with driving guitars",
+    "Up-tempo synthwave",
+    "High-energy hip hop beat"
+  ],
+  "calm/reflective": [
+    "Acoustic guitar fingerpicking",
+    "Soft ambient pads with light piano",
+    "Lo-fi chillhop",
+    "Gentle orchestral strings"
+  ],
+  "corporate/minimal": [
+    "Subtle marimba and light percussion",
+    "Minimalist tech house beat",
+    "Neutral ambient drone",
+    "Light acoustic strumming"
+  ],
+  "dramatic/cinematic": [
+    "Building orchestral strings",
+    "Heavy cinematic percussion",
+    "Dark synth pulses",
+    "Epic brass swells"
+  ],
+  "playful/fun": [
+    "Quirky ukulele and whistling",
+    "Bouncy synth pop",
+    "Light jazz piano",
+    "Upbeat funk groove"
+  ],
+  "default": [
+    "Trending pop instrumental",
+    "Neutral lo-fi beat",
+    "Light acoustic background"
+  ]
+}

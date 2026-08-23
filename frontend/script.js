@@ -241,6 +241,42 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
+            // Suggestions Phase
+            showStatus('Generating creative suggestions...', '');
+            textInput.placeholder = 'Generating creative suggestions...';
+
+            const audioSuggestionsSection = document.getElementById('audioSuggestionsSection');
+            const audioMoodBadge = document.getElementById('audioMoodBadge');
+            const audioSuggestionsList = document.getElementById('audioSuggestionsList');
+            const timeTwitter = document.getElementById('timeTwitter');
+            const timeLinkedIn = document.getElementById('timeLinkedIn');
+            const timeInstagram = document.getElementById('timeInstagram');
+            const hashtagsTwitter = document.getElementById('hashtagsTwitter');
+            const hashtagsLinkedIn = document.getElementById('hashtagsLinkedIn');
+            const hashtagsInstagram = document.getElementById('hashtagsInstagram');
+
+            let suggestResult = null;
+            if (classifyResult) {
+                try {
+                    const suggestResponse = await fetch('/api/suggest', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            text: extractResult.text,
+                            classification: classifyResult
+                        })
+                    });
+
+                    if (suggestResponse.ok) {
+                        suggestResult = await suggestResponse.json();
+                    } else {
+                        console.warn('Suggest API error:', await suggestResponse.json());
+                    }
+                } catch (err) {
+                    console.warn('Network error during suggestions:', err);
+                }
+            }
+
             // Success phase
             showStatus('', '');
             inputWrapper.classList.add('hidden');
@@ -263,14 +299,29 @@ document.addEventListener('DOMContentLoaded', () => {
                     scoreBarFill.style.width = `${scoreResult.score}%`;
                 }, 100);
                 
+                scoreValue.innerHTML = `${scoreResult.score}/100`;
+                
+                // Clear any existing predicted text
+                const existingPredicted = document.getElementById('predictedScoreText');
+                if (existingPredicted) existingPredicted.remove();
+
+                if (scoreResult.predicted_score && scoreResult.predicted_score > scoreResult.score && scoreResult.suggested_edits && scoreResult.suggested_edits.length > 0) {
+                    const diff = scoreResult.predicted_score - scoreResult.score;
+                    const predictedMsg = document.createElement('div');
+                    predictedMsg.id = 'predictedScoreText';
+                    predictedMsg.className = 'predicted-score-text';
+                    predictedMsg.textContent = `If all changes are applied it would boost your score by ${diff}, and the final score would be ${scoreResult.predicted_score}.`;
+                    document.querySelector('.score-bar-container').insertAdjacentElement('afterend', predictedMsg);
+                }
+                
                 scoreGrammar.textContent = scoreResult.breakdown.grammar;
                 scoreClarity.textContent = scoreResult.breakdown.clarity;
                 scoreEngagement.textContent = scoreResult.breakdown.engagement_potential;
                 scoreTone.textContent = scoreResult.breakdown.tone_fit;
                 qualityScoreSection.classList.remove('hidden');
 
+                editsContainer.innerHTML = '';
                 if (scoreResult.suggested_edits && scoreResult.suggested_edits.length > 0) {
-                    editsContainer.innerHTML = '';
                     scoreResult.suggested_edits.forEach(edit => {
                         const card = document.createElement('div');
                         card.className = 'edit-card';
@@ -283,10 +334,22 @@ document.addEventListener('DOMContentLoaded', () => {
                         `;
                         editsContainer.appendChild(card);
                     });
-                    suggestedEditsSection.classList.remove('hidden');
                 } else {
-                    suggestedEditsSection.classList.add('hidden');
+                    const perfectMsg = document.createElement('div');
+                    perfectMsg.style.padding = '1rem';
+                    perfectMsg.style.color = '#10b981';
+                    perfectMsg.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+                    perfectMsg.style.border = '1px solid rgba(16, 185, 129, 0.3)';
+                    perfectMsg.style.borderRadius = '8px';
+                    perfectMsg.style.fontWeight = '500';
+                    perfectMsg.style.fontSize = '0.85rem';
+                    perfectMsg.style.display = 'flex';
+                    perfectMsg.style.alignItems = 'center';
+                    perfectMsg.style.gap = '0.5rem';
+                    perfectMsg.innerHTML = 'Everything is perfect! No changes required.';
+                    editsContainer.appendChild(perfectMsg);
                 }
+                suggestedEditsSection.classList.remove('hidden');
             } else {
                 qualityScoreSection.classList.add('hidden');
                 suggestedEditsSection.classList.add('hidden');
@@ -300,6 +363,55 @@ document.addEventListener('DOMContentLoaded', () => {
                 platformRewritesSection.classList.remove('hidden');
             } else {
                 platformRewritesSection.classList.add('hidden');
+            }
+
+            if (suggestResult) {
+                // Populate hashtags
+                const renderHashtags = (container, tags) => {
+                    container.innerHTML = '';
+                    if (tags && tags.length > 0) {
+                        tags.forEach(tag => {
+                            const span = document.createElement('span');
+                            span.className = 'hashtag-pill';
+                            span.textContent = tag;
+                            container.appendChild(span);
+                        });
+                    }
+                };
+
+                renderHashtags(hashtagsTwitter, suggestResult.hashtags?.twitter);
+                renderHashtags(hashtagsLinkedIn, suggestResult.hashtags?.linkedin);
+                renderHashtags(hashtagsInstagram, suggestResult.hashtags?.instagram);
+
+                const renderTime = (el, data, defaultTime, defaultReason) => {
+                    const time = data?.time || defaultTime;
+                    const reason = data?.reason || defaultReason;
+                    el.innerHTML = `<span class="time-text">${time}</span><span class="tooltip-text">${reason}</span>`;
+                };
+
+                renderTime(timeTwitter, suggestResult.best_time_to_post?.twitter, 'Weekdays, 9am - 11am', 'Standard active hours on X.');
+                renderTime(timeLinkedIn, suggestResult.best_time_to_post?.linkedin, 'Tue-Thu, 9am - 12pm', 'Professional peak networking hours.');
+                renderTime(timeInstagram, suggestResult.best_time_to_post?.instagram, 'Weekdays, 6pm - 9pm', 'Casual browsing time after work.');
+
+                // Populate Audio
+                audioMoodBadge.textContent = suggestResult.audio_mood || 'unknown';
+                audioSuggestionsList.innerHTML = '';
+                if (suggestResult.audio_suggestions && suggestResult.audio_suggestions.length > 0) {
+                    suggestResult.audio_suggestions.forEach(suggestion => {
+                        const li = document.createElement('li');
+                        li.textContent = suggestion;
+                        audioSuggestionsList.appendChild(li);
+                    });
+                }
+                audioSuggestionsSection.classList.remove('hidden');
+            } else {
+                timeTwitter.innerHTML = '';
+                timeLinkedIn.innerHTML = '';
+                timeInstagram.innerHTML = '';
+                hashtagsTwitter.innerHTML = '';
+                hashtagsLinkedIn.innerHTML = '';
+                hashtagsInstagram.innerHTML = '';
+                audioSuggestionsSection.classList.add('hidden');
             }
             
             extractedText.value = extractResult.text || 'No text extracted.';

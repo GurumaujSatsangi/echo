@@ -6,6 +6,7 @@ Your job is to evaluate the provided text based on grammar, clarity, engagement 
 You must return a valid JSON object strictly adhering to the following structure:
 {
   "score": 0, // an integer from 0 to 100 representing the overall quality
+  "predicted_score": 0, // an integer from 0 to 100 representing the predicted score if all suggested edits are applied
   "breakdown": {
     "grammar": 0, // an integer from 0 to 100
     "clarity": 0, // an integer from 0 to 100
@@ -23,7 +24,8 @@ You must return a valid JSON object strictly adhering to the following structure
 
 CRITICAL RULES:
 - The "suggested_edits" array MUST contain NO MORE THAN 5 items. Focus only on the most impactful edits. If the text is perfect, return an empty array.
-- "score" and all breakdown values must be integers between 0 and 100.
+- "score", "predicted_score", and all breakdown values must be integers between 0 and 100.
+- "predicted_score" MUST be >= "score".
 `;
 
 const scoreText = async (req, res, next) => {

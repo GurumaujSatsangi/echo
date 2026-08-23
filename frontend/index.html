@@ -185,6 +185,17 @@
                     </div>
                 </div>
 
+                <!-- Audio Suggestions Section -->
+                <div id="audioSuggestionsSection" class="audio-section hidden">
+                    <div class="audio-header">
+                        <h3>Suggested Audio Style <span class="not-live-label">(not live trending data)</span></h3>
+                        <span id="audioMoodBadge" class="badge badge-mood">Mood</span>
+                    </div>
+                    <ul id="audioSuggestionsList" class="audio-list">
+                        <!-- Audio styles injected here -->
+                    </ul>
+                </div>
+
                 <!-- Platform Rewrites Section -->
                 <div id="platformRewritesSection" class="rewrites-section hidden">
                     <h3>Platform-Optimized Posts</h3>
@@ -197,14 +208,26 @@
                         <div class="tabs-content">
                             <div id="rewriteTwitter" class="tab-pane active">
                                 <textarea id="textTwitter" class="rewrite-textarea" readonly></textarea>
+                                <div class="platform-meta">
+                                    <div id="timeTwitter" class="best-time"></div>
+                                    <div id="hashtagsTwitter" class="hashtags-container"></div>
+                                </div>
                                 <button class="copy-btn" data-copy="textTwitter">Copy to Clipboard</button>
                             </div>
                             <div id="rewriteLinkedIn" class="tab-pane">
                                 <textarea id="textLinkedIn" class="rewrite-textarea" readonly></textarea>
+                                <div class="platform-meta">
+                                    <div id="timeLinkedIn" class="best-time"></div>
+                                    <div id="hashtagsLinkedIn" class="hashtags-container"></div>
+                                </div>
                                 <button class="copy-btn" data-copy="textLinkedIn">Copy to Clipboard</button>
                             </div>
                             <div id="rewriteInstagram" class="tab-pane">
                                 <textarea id="textInstagram" class="rewrite-textarea" readonly></textarea>
+                                <div class="platform-meta">
+                                    <div id="timeInstagram" class="best-time"></div>
+                                    <div id="hashtagsInstagram" class="hashtags-container"></div>
+                                </div>
                                 <button class="copy-btn" data-copy="textInstagram">Copy to Clipboard</button>
                             </div>
                         </div>
