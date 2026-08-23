@@ -146,6 +146,71 @@
                     <p id="summaryText" class="summary-text"></p>
                 </div>
 
+                <!-- Quality Score Section -->
+                <div id="qualityScoreSection" class="score-section hidden">
+                    <div class="score-header">
+                        <h3>Quality Score</h3>
+                        <div class="score-bar-container">
+                            <div class="score-bar-bg">
+                                <div id="scoreBarFill" class="score-bar-fill" style="width: 0%;"></div>
+                            </div>
+                            <span id="scoreValue" class="score-value">0/100</span>
+                        </div>
+                    </div>
+                    <div class="score-breakdown">
+                        <div class="breakdown-item">
+                            <span class="breakdown-label">Grammar</span>
+                            <span id="scoreGrammar" class="breakdown-value">0</span>
+                        </div>
+                        <div class="breakdown-item">
+                            <span class="breakdown-label">Clarity</span>
+                            <span id="scoreClarity" class="breakdown-value">0</span>
+                        </div>
+                        <div class="breakdown-item">
+                            <span class="breakdown-label">Engagement</span>
+                            <span id="scoreEngagement" class="breakdown-value">0</span>
+                        </div>
+                        <div class="breakdown-item">
+                            <span class="breakdown-label">Tone Fit</span>
+                            <span id="scoreTone" class="breakdown-value">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Suggested Edits Section -->
+                <div id="suggestedEditsSection" class="edits-section hidden">
+                    <h3>Suggested Improvements</h3>
+                    <div id="editsContainer" class="edits-container">
+                        <!-- Edit cards will be injected here -->
+                    </div>
+                </div>
+
+                <!-- Platform Rewrites Section -->
+                <div id="platformRewritesSection" class="rewrites-section hidden">
+                    <h3>Platform-Optimized Posts</h3>
+                    <div class="tabs-container">
+                        <div class="tabs-header">
+                            <button class="tab-btn active" data-target="rewriteTwitter">Twitter (X)</button>
+                            <button class="tab-btn" data-target="rewriteLinkedIn">LinkedIn</button>
+                            <button class="tab-btn" data-target="rewriteInstagram">Instagram</button>
+                        </div>
+                        <div class="tabs-content">
+                            <div id="rewriteTwitter" class="tab-pane active">
+                                <textarea id="textTwitter" class="rewrite-textarea" readonly></textarea>
+                                <button class="copy-btn" data-copy="textTwitter">Copy to Clipboard</button>
+                            </div>
+                            <div id="rewriteLinkedIn" class="tab-pane">
+                                <textarea id="textLinkedIn" class="rewrite-textarea" readonly></textarea>
+                                <button class="copy-btn" data-copy="textLinkedIn">Copy to Clipboard</button>
+                            </div>
+                            <div id="rewriteInstagram" class="tab-pane">
+                                <textarea id="textInstagram" class="rewrite-textarea" readonly></textarea>
+                                <button class="copy-btn" data-copy="textInstagram">Copy to Clipboard</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <textarea id="extractedText" class="extracted-text-area" readonly></textarea>
             </div>
 

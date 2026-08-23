@@ -173,6 +173,74 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.warn('Network error during classification:', err);
             }
 
+            // Scoring Phase
+            showStatus('Scoring content quality...', '');
+            textInput.placeholder = 'Scoring content quality...';
+            
+            const qualityScoreSection = document.getElementById('qualityScoreSection');
+            const suggestedEditsSection = document.getElementById('suggestedEditsSection');
+            const scoreValue = document.getElementById('scoreValue');
+            const scoreBarFill = document.getElementById('scoreBarFill');
+            const editsContainer = document.getElementById('editsContainer');
+            
+            const scoreGrammar = document.getElementById('scoreGrammar');
+            const scoreClarity = document.getElementById('scoreClarity');
+            const scoreEngagement = document.getElementById('scoreEngagement');
+            const scoreTone = document.getElementById('scoreTone');
+
+            let scoreResult = null;
+            if (classifyResult) {
+                try {
+                    const scoreResponse = await fetch('/api/score', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            text: extractResult.text,
+                            classification: classifyResult
+                        })
+                    });
+
+                    if (scoreResponse.ok) {
+                        scoreResult = await scoreResponse.json();
+                    } else {
+                        console.warn('Scoring API error:', await scoreResponse.json());
+                    }
+                } catch (err) {
+                    console.warn('Network error during scoring:', err);
+                }
+            }
+
+            // Rewrites Phase
+            showStatus('Generating platform rewrites...', '');
+            textInput.placeholder = 'Generating platform rewrites...';
+
+            const platformRewritesSection = document.getElementById('platformRewritesSection');
+            const textTwitter = document.getElementById('textTwitter');
+            const textLinkedIn = document.getElementById('textLinkedIn');
+            const textInstagram = document.getElementById('textInstagram');
+
+            let rewriteResult = null;
+            if (classifyResult) {
+                try {
+                    const rewriteResponse = await fetch('/api/rewrite', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            text: extractResult.text,
+                            classification: classifyResult
+                        })
+                    });
+
+                    if (rewriteResponse.ok) {
+                        rewriteResult = await rewriteResponse.json();
+                    } else {
+                        console.warn('Rewrite API error:', await rewriteResponse.json());
+                    }
+                } catch (err) {
+                    console.warn('Network error during rewriting:', err);
+                }
+            }
+
             // Success phase
             showStatus('', '');
             inputWrapper.classList.add('hidden');
@@ -186,6 +254,52 @@ document.addEventListener('DOMContentLoaded', () => {
                 overviewCard.classList.remove('hidden');
             } else {
                 overviewCard.classList.add('hidden');
+            }
+            
+            if (scoreResult) {
+                scoreValue.textContent = `${scoreResult.score}/100`;
+                // slight delay for animation
+                setTimeout(() => {
+                    scoreBarFill.style.width = `${scoreResult.score}%`;
+                }, 100);
+                
+                scoreGrammar.textContent = scoreResult.breakdown.grammar;
+                scoreClarity.textContent = scoreResult.breakdown.clarity;
+                scoreEngagement.textContent = scoreResult.breakdown.engagement_potential;
+                scoreTone.textContent = scoreResult.breakdown.tone_fit;
+                qualityScoreSection.classList.remove('hidden');
+
+                if (scoreResult.suggested_edits && scoreResult.suggested_edits.length > 0) {
+                    editsContainer.innerHTML = '';
+                    scoreResult.suggested_edits.forEach(edit => {
+                        const card = document.createElement('div');
+                        card.className = 'edit-card';
+                        card.innerHTML = `
+                            <div class="edit-reason">${edit.reason}</div>
+                            <div class="edit-diff">
+                                <div class="edit-original">- ${edit.original.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+                                <div class="edit-suggested">+ ${edit.suggested.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+                            </div>
+                        `;
+                        editsContainer.appendChild(card);
+                    });
+                    suggestedEditsSection.classList.remove('hidden');
+                } else {
+                    suggestedEditsSection.classList.add('hidden');
+                }
+            } else {
+                qualityScoreSection.classList.add('hidden');
+                suggestedEditsSection.classList.add('hidden');
+                scoreBarFill.style.width = '0%';
+            }
+
+            if (rewriteResult) {
+                textTwitter.value = rewriteResult.twitter || '';
+                textLinkedIn.value = rewriteResult.linkedin || '';
+                textInstagram.value = rewriteResult.instagram || '';
+                platformRewritesSection.classList.remove('hidden');
+            } else {
+                platformRewritesSection.classList.add('hidden');
             }
             
             extractedText.value = extractResult.text || 'No text extracted.';
@@ -235,5 +349,40 @@ document.addEventListener('DOMContentLoaded', () => {
         centerGreeting.classList.remove('hidden');
         inputWrapper.classList.remove('hidden');
         removeBtn.click(); // Resets file input and submit button state
+    });
+
+    // Tab Switching Logic
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const container = e.target.closest('.tabs-container');
+            container.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            container.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+
+            e.target.classList.add('active');
+            const targetId = e.target.getAttribute('data-target');
+            document.getElementById(targetId).classList.add('active');
+        });
+    });
+
+    // Copy to Clipboard Logic
+    document.querySelectorAll('.copy-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const targetId = e.target.getAttribute('data-copy');
+            const textToCopy = document.getElementById(targetId).value;
+            try {
+                await navigator.clipboard.writeText(textToCopy);
+                const originalText = e.target.textContent;
+                e.target.textContent = 'Copied!';
+                setTimeout(() => {
+                    e.target.textContent = originalText;
+                }, 2000);
+            } catch (err) {
+                console.error('Failed to copy text: ', err);
+                e.target.textContent = 'Failed';
+                setTimeout(() => {
+                    e.target.textContent = 'Copy to Clipboard';
+                }, 2000);
+            }
+        });
     });
 });

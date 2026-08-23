@@ -75,6 +75,12 @@ app.post('/api/extract', extractText);
 const { classifyText } = require('./controllers/classifyController');
 app.post('/api/classify', classifyText);
 
+const { scoreText } = require('./controllers/scoreController');
+app.post('/api/score', scoreText);
+
+const { rewriteText } = require('./controllers/rewriteController');
+app.post('/api/rewrite', rewriteText);
+
 app.get('/api/health', (req, res) => {
   res.json({ status: "ok" });
 });
