@@ -20,8 +20,66 @@ document.addEventListener('DOMContentLoaded', () => {
     const startOverBtn = document.getElementById('startOverBtn');
     const extractedText = document.getElementById('extractedText');
     const inputWrapper = document.getElementById('inputWrapper');
+    const chatsList = document.getElementById('chatsList');
+    const newChatBtn = document.querySelector('.new-chat-btn');
+    
+    const sidebar = document.getElementById('sidebar');
+    const collapseSidebarBtn = document.getElementById('collapseSidebarBtn');
+    const expandSidebarBtn = document.getElementById('expandSidebarBtn');
+
+    if (collapseSidebarBtn && expandSidebarBtn && sidebar) {
+        collapseSidebarBtn.addEventListener('click', () => {
+            sidebar.classList.add('collapsed');
+            expandSidebarBtn.style.display = 'flex';
+        });
+
+        expandSidebarBtn.addEventListener('click', () => {
+            sidebar.classList.remove('collapsed');
+            expandSidebarBtn.style.display = 'none';
+        });
+    }
 
     let currentFile = null;
+    let analysisHistory = JSON.parse(localStorage.getItem('echo_recent_analyses') || '[]');
+    let currentAnalysisId = null;
+    let compareContext = null;
+
+    function renderHistory() {
+        chatsList.innerHTML = '';
+        analysisHistory.forEach(analysis => {
+            const div = document.createElement('div');
+            div.className = 'chat-item';
+            if (analysis.id === currentAnalysisId) {
+                div.classList.add('active');
+            }
+            div.textContent = analysis.title || 'Untitled Analysis';
+            div.addEventListener('click', () => loadAnalysis(analysis.id));
+            chatsList.appendChild(div);
+        });
+    }
+
+    function loadAnalysis(id) {
+        const analysis = analysisHistory.find(a => a.id === id);
+        if (!analysis) return;
+        currentAnalysisId = id;
+        compareContext = null;
+        renderHistory();
+        
+        populateUI(analysis.data, null);
+    }
+
+    renderHistory();
+
+    newChatBtn.addEventListener('click', () => {
+        currentAnalysisId = null;
+        compareContext = null;
+        renderHistory();
+        resultPanel.classList.add('hidden');
+        centerGreeting.classList.remove('hidden');
+        inputWrapper.classList.remove('hidden');
+        textInput.placeholder = 'Upload a document for analysis...';
+        if(removeBtn) removeBtn.click();
+    });
 
     // Trigger file input on click
     browseBtn.addEventListener('click', (e) => {
@@ -90,7 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
         submitBtn.querySelector('svg').style.stroke = 'var(--bg-main)';
         showStatus('', '');
         errorBanner.classList.add('hidden');
-        textInput.placeholder = 'Ready to analyze...';
+        textInput.placeholder = compareContext ? 'Ready to compare...' : 'Ready to analyze...';
     }
 
     removeBtn.addEventListener('click', () => {
@@ -100,8 +158,184 @@ document.addEventListener('DOMContentLoaded', () => {
         submitBtn.disabled = true;
         submitBtn.querySelector('svg').style.stroke = 'currentColor';
         showStatus('', '');
-        textInput.placeholder = 'Upload a document for analysis...';
+        textInput.placeholder = compareContext ? 'Upload a modified document for comparison...' : 'Upload a document for analysis...';
     });
+
+    function populateUI(data, prevData) {
+        const { extractResult, classifyResult, scoreResult, rewriteResult, suggestResult } = data;
+        
+        // Hide/Show logic from success phase
+        inputWrapper.classList.add('hidden');
+        centerGreeting.classList.add('hidden');
+        resultPanel.classList.remove('hidden');
+
+        if (classifyResult) {
+            document.getElementById('categoryBadge').textContent = classifyResult.category.replace('_', ' ');
+            document.getElementById('toneBadge').textContent = classifyResult.tone;
+            document.getElementById('summaryText').textContent = classifyResult.summary;
+            document.getElementById('contentOverviewCard').classList.remove('hidden');
+        } else {
+            document.getElementById('contentOverviewCard').classList.add('hidden');
+        }
+        
+        if (scoreResult) {
+            const scoreValue = document.getElementById('scoreValue');
+            const previousScoreValue = document.getElementById('previousScoreValue');
+            const scoreDiff = document.getElementById('scoreDiff');
+            const scoreBarFill = document.getElementById('scoreBarFill');
+
+            scoreValue.textContent = `${scoreResult.score}/100`;
+            setTimeout(() => {
+                scoreBarFill.style.width = `${scoreResult.score}%`;
+            }, 100);
+            
+            if (prevData && prevData.scoreResult) {
+                const diff = scoreResult.score - prevData.scoreResult.score;
+                previousScoreValue.textContent = `${prevData.scoreResult.score}/100`;
+                previousScoreValue.classList.remove('hidden');
+                scoreDiff.classList.remove('hidden');
+                scoreDiff.textContent = diff > 0 ? `+${diff}` : diff;
+                scoreDiff.className = `score-diff ${diff > 0 ? 'positive' : diff < 0 ? 'negative' : ''}`;
+            } else {
+                previousScoreValue.classList.add('hidden');
+                scoreDiff.classList.add('hidden');
+            }
+            
+            // Clear any existing predicted text
+            const existingPredicted = document.getElementById('predictedScoreText');
+            if (existingPredicted) existingPredicted.remove();
+
+            if (scoreResult.predicted_score && scoreResult.predicted_score > scoreResult.score && scoreResult.suggested_edits && scoreResult.suggested_edits.length > 0) {
+                const diff = scoreResult.predicted_score - scoreResult.score;
+                const predictedMsg = document.createElement('div');
+                predictedMsg.id = 'predictedScoreText';
+                predictedMsg.className = 'predicted-score-text';
+                predictedMsg.textContent = `If all changes are applied it would boost your score by ${diff}, and the final score would be ${scoreResult.predicted_score}.`;
+                document.querySelector('.score-bar-container').insertAdjacentElement('afterend', predictedMsg);
+            }
+            
+            document.getElementById('scoreGrammar').textContent = scoreResult.breakdown.grammar;
+            document.getElementById('scoreClarity').textContent = scoreResult.breakdown.clarity;
+            document.getElementById('scoreEngagement').textContent = scoreResult.breakdown.engagement_potential;
+            document.getElementById('scoreTone').textContent = scoreResult.breakdown.tone_fit;
+            document.getElementById('qualityScoreSection').classList.remove('hidden');
+
+            const editsContainer = document.getElementById('editsContainer');
+            editsContainer.innerHTML = '';
+            if (scoreResult.suggested_edits && scoreResult.suggested_edits.length > 0) {
+                scoreResult.suggested_edits.forEach(edit => {
+                    const card = document.createElement('div');
+                    card.className = 'edit-card';
+                    card.innerHTML = `
+                        <div class="edit-reason">${edit.reason}</div>
+                        <div class="edit-diff">
+                            <div class="edit-original">- ${edit.original.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+                            <div class="edit-suggested">+ ${edit.suggested.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+                        </div>
+                    `;
+                    editsContainer.appendChild(card);
+                });
+            } else {
+                const perfectMsg = document.createElement('div');
+                perfectMsg.style.padding = '1rem';
+                perfectMsg.style.color = '#10b981';
+                perfectMsg.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+                perfectMsg.style.border = '1px solid rgba(16, 185, 129, 0.3)';
+                perfectMsg.style.borderRadius = '8px';
+                perfectMsg.style.fontWeight = '500';
+                perfectMsg.style.fontSize = '0.85rem';
+                perfectMsg.style.display = 'flex';
+                perfectMsg.style.alignItems = 'center';
+                perfectMsg.style.gap = '0.5rem';
+                perfectMsg.innerHTML = 'Everything is perfect! No changes required.';
+                editsContainer.appendChild(perfectMsg);
+            }
+            document.getElementById('suggestedEditsSection').classList.remove('hidden');
+        } else {
+            document.getElementById('qualityScoreSection').classList.add('hidden');
+            document.getElementById('suggestedEditsSection').classList.add('hidden');
+            document.getElementById('scoreBarFill').style.width = '0%';
+        }
+
+        // Rewrites
+        if (rewriteResult) {
+            document.getElementById('textTwitter').value = rewriteResult.twitter || '';
+            document.getElementById('textLinkedIn').value = rewriteResult.linkedin || '';
+            document.getElementById('textInstagram').value = rewriteResult.instagram || '';
+            document.getElementById('platformRewritesSection').classList.remove('hidden');
+        } else {
+            document.getElementById('platformRewritesSection').classList.add('hidden');
+        }
+
+        // Suggestions
+        if (suggestResult) {
+            const renderHashtags = (container, tags) => {
+                container.innerHTML = '';
+                if (tags && tags.length > 0) {
+                    tags.forEach(tag => {
+                        const span = document.createElement('span');
+                        span.className = 'hashtag-pill';
+                        span.textContent = tag;
+                        container.appendChild(span);
+                    });
+                }
+            };
+
+            renderHashtags(document.getElementById('hashtagsTwitter'), suggestResult.hashtags?.twitter);
+            renderHashtags(document.getElementById('hashtagsLinkedIn'), suggestResult.hashtags?.linkedin);
+            renderHashtags(document.getElementById('hashtagsInstagram'), suggestResult.hashtags?.instagram);
+
+            const renderTime = (el, tdata, defaultTime, defaultReason) => {
+                const time = tdata?.time || defaultTime;
+                const reason = tdata?.reason || defaultReason;
+                el.innerHTML = `<span class="time-text">${time}</span><span class="tooltip-text">${reason}</span>`;
+            };
+
+            renderTime(document.getElementById('timeTwitter'), suggestResult.best_time_to_post?.twitter, 'Weekdays, 9am - 11am', 'Standard active hours on X.');
+            renderTime(document.getElementById('timeLinkedIn'), suggestResult.best_time_to_post?.linkedin, 'Tue-Thu, 9am - 12pm', 'Professional peak networking hours.');
+            renderTime(document.getElementById('timeInstagram'), suggestResult.best_time_to_post?.instagram, 'Weekdays, 6pm - 9pm', 'Casual browsing time after work.');
+
+            document.getElementById('audioMoodBadge').textContent = suggestResult.audio_mood || 'unknown';
+            const audioSuggestionsList = document.getElementById('audioSuggestionsList');
+            audioSuggestionsList.innerHTML = '';
+            if (suggestResult.audio_suggestions && suggestResult.audio_suggestions.length > 0) {
+                suggestResult.audio_suggestions.forEach(suggestion => {
+                    const li = document.createElement('li');
+                    if (typeof suggestion === 'object' && suggestion.title && suggestion.url) {
+                        const a = document.createElement('a');
+                        a.href = suggestion.url;
+                        a.textContent = suggestion.title;
+                        a.target = '_blank';
+                        a.rel = 'noopener noreferrer';
+                        li.appendChild(a);
+                    } else {
+                        li.textContent = typeof suggestion === 'string' ? suggestion : JSON.stringify(suggestion);
+                    }
+                    audioSuggestionsList.appendChild(li);
+                });
+            }
+            document.getElementById('audioSuggestionsSection').classList.remove('hidden');
+        } else {
+            document.getElementById('timeTwitter').innerHTML = '';
+            document.getElementById('timeLinkedIn').innerHTML = '';
+            document.getElementById('timeInstagram').innerHTML = '';
+            document.getElementById('hashtagsTwitter').innerHTML = '';
+            document.getElementById('hashtagsLinkedIn').innerHTML = '';
+            document.getElementById('hashtagsInstagram').innerHTML = '';
+            document.getElementById('audioSuggestionsSection').classList.add('hidden');
+        }
+        
+        const extractedText = document.getElementById('extractedText');
+        extractedText.value = extractResult.text || 'No text extracted.';
+        const resultMeta = document.getElementById('resultMeta');
+        if (extractResult.confidence) {
+            resultMeta.textContent = `Confidence: ${extractResult.confidence}%`;
+        } else if (extractResult.pageCount) {
+            resultMeta.textContent = `Pages: ${extractResult.pageCount}`;
+        } else {
+            resultMeta.textContent = '';
+        }
+    }
 
     submitBtn.addEventListener('click', async () => {
         if (!currentFile) return;
@@ -150,11 +384,6 @@ document.addEventListener('DOMContentLoaded', () => {
             showStatus('Analyzing content...', '');
             textInput.placeholder = 'Analyzing content...';
 
-            const overviewCard = document.getElementById('contentOverviewCard');
-            const categoryBadge = document.getElementById('categoryBadge');
-            const toneBadge = document.getElementById('toneBadge');
-            const summaryText = document.getElementById('summaryText');
-
             let classifyResult = null;
             try {
                 const classifyResponse = await fetch('/api/classify', {
@@ -176,17 +405,6 @@ document.addEventListener('DOMContentLoaded', () => {
             // Scoring Phase
             showStatus('Scoring content quality...', '');
             textInput.placeholder = 'Scoring content quality...';
-            
-            const qualityScoreSection = document.getElementById('qualityScoreSection');
-            const suggestedEditsSection = document.getElementById('suggestedEditsSection');
-            const scoreValue = document.getElementById('scoreValue');
-            const scoreBarFill = document.getElementById('scoreBarFill');
-            const editsContainer = document.getElementById('editsContainer');
-            
-            const scoreGrammar = document.getElementById('scoreGrammar');
-            const scoreClarity = document.getElementById('scoreClarity');
-            const scoreEngagement = document.getElementById('scoreEngagement');
-            const scoreTone = document.getElementById('scoreTone');
 
             let scoreResult = null;
             if (classifyResult) {
@@ -214,11 +432,6 @@ document.addEventListener('DOMContentLoaded', () => {
             showStatus('Generating platform rewrites...', '');
             textInput.placeholder = 'Generating platform rewrites...';
 
-            const platformRewritesSection = document.getElementById('platformRewritesSection');
-            const textTwitter = document.getElementById('textTwitter');
-            const textLinkedIn = document.getElementById('textLinkedIn');
-            const textInstagram = document.getElementById('textInstagram');
-
             let rewriteResult = null;
             if (classifyResult) {
                 try {
@@ -245,16 +458,6 @@ document.addEventListener('DOMContentLoaded', () => {
             showStatus('Generating creative suggestions...', '');
             textInput.placeholder = 'Generating creative suggestions...';
 
-            const audioSuggestionsSection = document.getElementById('audioSuggestionsSection');
-            const audioMoodBadge = document.getElementById('audioMoodBadge');
-            const audioSuggestionsList = document.getElementById('audioSuggestionsList');
-            const timeTwitter = document.getElementById('timeTwitter');
-            const timeLinkedIn = document.getElementById('timeLinkedIn');
-            const timeInstagram = document.getElementById('timeInstagram');
-            const hashtagsTwitter = document.getElementById('hashtagsTwitter');
-            const hashtagsLinkedIn = document.getElementById('hashtagsLinkedIn');
-            const hashtagsInstagram = document.getElementById('hashtagsInstagram');
-
             let suggestResult = null;
             if (classifyResult) {
                 try {
@@ -279,165 +482,49 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Success phase
             showStatus('', '');
-            inputWrapper.classList.add('hidden');
-            centerGreeting.classList.add('hidden');
-            resultPanel.classList.remove('hidden');
-
-            if (classifyResult) {
-                categoryBadge.textContent = classifyResult.category.replace('_', ' ');
-                toneBadge.textContent = classifyResult.tone;
-                summaryText.textContent = classifyResult.summary;
-                overviewCard.classList.remove('hidden');
-            } else {
-                overviewCard.classList.add('hidden');
-            }
             
-            if (scoreResult) {
-                scoreValue.textContent = `${scoreResult.score}/100`;
-                // slight delay for animation
-                setTimeout(() => {
-                    scoreBarFill.style.width = `${scoreResult.score}%`;
-                }, 100);
-                
-                scoreValue.innerHTML = `${scoreResult.score}/100`;
-                
-                // Clear any existing predicted text
-                const existingPredicted = document.getElementById('predictedScoreText');
-                if (existingPredicted) existingPredicted.remove();
+            const resultData = {
+                extractResult,
+                classifyResult,
+                scoreResult,
+                rewriteResult,
+                suggestResult
+            };
 
-                if (scoreResult.predicted_score && scoreResult.predicted_score > scoreResult.score && scoreResult.suggested_edits && scoreResult.suggested_edits.length > 0) {
-                    const diff = scoreResult.predicted_score - scoreResult.score;
-                    const predictedMsg = document.createElement('div');
-                    predictedMsg.id = 'predictedScoreText';
-                    predictedMsg.className = 'predicted-score-text';
-                    predictedMsg.textContent = `If all changes are applied it would boost your score by ${diff}, and the final score would be ${scoreResult.predicted_score}.`;
-                    document.querySelector('.score-bar-container').insertAdjacentElement('afterend', predictedMsg);
-                }
-                
-                scoreGrammar.textContent = scoreResult.breakdown.grammar;
-                scoreClarity.textContent = scoreResult.breakdown.clarity;
-                scoreEngagement.textContent = scoreResult.breakdown.engagement_potential;
-                scoreTone.textContent = scoreResult.breakdown.tone_fit;
-                qualityScoreSection.classList.remove('hidden');
-
-                editsContainer.innerHTML = '';
-                if (scoreResult.suggested_edits && scoreResult.suggested_edits.length > 0) {
-                    scoreResult.suggested_edits.forEach(edit => {
-                        const card = document.createElement('div');
-                        card.className = 'edit-card';
-                        card.innerHTML = `
-                            <div class="edit-reason">${edit.reason}</div>
-                            <div class="edit-diff">
-                                <div class="edit-original">- ${edit.original.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
-                                <div class="edit-suggested">+ ${edit.suggested.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
-                            </div>
-                        `;
-                        editsContainer.appendChild(card);
-                    });
-                } else {
-                    const perfectMsg = document.createElement('div');
-                    perfectMsg.style.padding = '1rem';
-                    perfectMsg.style.color = '#10b981';
-                    perfectMsg.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
-                    perfectMsg.style.border = '1px solid rgba(16, 185, 129, 0.3)';
-                    perfectMsg.style.borderRadius = '8px';
-                    perfectMsg.style.fontWeight = '500';
-                    perfectMsg.style.fontSize = '0.85rem';
-                    perfectMsg.style.display = 'flex';
-                    perfectMsg.style.alignItems = 'center';
-                    perfectMsg.style.gap = '0.5rem';
-                    perfectMsg.innerHTML = 'Everything is perfect! No changes required.';
-                    editsContainer.appendChild(perfectMsg);
-                }
-                suggestedEditsSection.classList.remove('hidden');
-            } else {
-                qualityScoreSection.classList.add('hidden');
-                suggestedEditsSection.classList.add('hidden');
-                scoreBarFill.style.width = '0%';
-            }
-
-            if (rewriteResult) {
-                textTwitter.value = rewriteResult.twitter || '';
-                textLinkedIn.value = rewriteResult.linkedin || '';
-                textInstagram.value = rewriteResult.instagram || '';
-                platformRewritesSection.classList.remove('hidden');
-            } else {
-                platformRewritesSection.classList.add('hidden');
-            }
-
-            if (suggestResult) {
-                // Populate hashtags
-                const renderHashtags = (container, tags) => {
-                    container.innerHTML = '';
-                    if (tags && tags.length > 0) {
-                        tags.forEach(tag => {
-                            const span = document.createElement('span');
-                            span.className = 'hashtag-pill';
-                            span.textContent = tag;
-                            container.appendChild(span);
-                        });
-                    }
+            if (compareContext) {
+                const newAnalysis = {
+                    id: Date.now(),
+                    title: 'Revision: ' + (resultData.classifyResult?.summary?.substring(0, 20) || 'Analysis') + '...',
+                    data: resultData
                 };
-
-                renderHashtags(hashtagsTwitter, suggestResult.hashtags?.twitter);
-                renderHashtags(hashtagsLinkedIn, suggestResult.hashtags?.linkedin);
-                renderHashtags(hashtagsInstagram, suggestResult.hashtags?.instagram);
-
-                const renderTime = (el, data, defaultTime, defaultReason) => {
-                    const time = data?.time || defaultTime;
-                    const reason = data?.reason || defaultReason;
-                    el.innerHTML = `<span class="time-text">${time}</span><span class="tooltip-text">${reason}</span>`;
+                analysisHistory.unshift(newAnalysis);
+                if (analysisHistory.length > 20) analysisHistory.pop();
+                localStorage.setItem('echo_recent_analyses', JSON.stringify(analysisHistory));
+                currentAnalysisId = newAnalysis.id;
+                
+                populateUI(resultData, compareContext.data);
+                compareContext = null;
+            } else {
+                const newAnalysis = {
+                    id: Date.now(),
+                    title: resultData.classifyResult?.summary?.substring(0, 30) + '...' || 'New Analysis',
+                    data: resultData
                 };
-
-                renderTime(timeTwitter, suggestResult.best_time_to_post?.twitter, 'Weekdays, 9am - 11am', 'Standard active hours on X.');
-                renderTime(timeLinkedIn, suggestResult.best_time_to_post?.linkedin, 'Tue-Thu, 9am - 12pm', 'Professional peak networking hours.');
-                renderTime(timeInstagram, suggestResult.best_time_to_post?.instagram, 'Weekdays, 6pm - 9pm', 'Casual browsing time after work.');
-
-                // Populate Audio
-                audioMoodBadge.textContent = suggestResult.audio_mood || 'unknown';
-                audioSuggestionsList.innerHTML = '';
-                if (suggestResult.audio_suggestions && suggestResult.audio_suggestions.length > 0) {
-                    suggestResult.audio_suggestions.forEach(suggestion => {
-                        const li = document.createElement('li');
-                        if (typeof suggestion === 'object' && suggestion.title && suggestion.url) {
-                            const a = document.createElement('a');
-                            a.href = suggestion.url;
-                            a.textContent = suggestion.title;
-                            a.target = '_blank';
-                            a.rel = 'noopener noreferrer';
-                            li.appendChild(a);
-                        } else {
-                            li.textContent = suggestion;
-                        }
-                        audioSuggestionsList.appendChild(li);
-                    });
-                }
-                audioSuggestionsSection.classList.remove('hidden');
-            } else {
-                timeTwitter.innerHTML = '';
-                timeLinkedIn.innerHTML = '';
-                timeInstagram.innerHTML = '';
-                hashtagsTwitter.innerHTML = '';
-                hashtagsLinkedIn.innerHTML = '';
-                hashtagsInstagram.innerHTML = '';
-                audioSuggestionsSection.classList.add('hidden');
+                analysisHistory.unshift(newAnalysis);
+                if (analysisHistory.length > 20) analysisHistory.pop();
+                localStorage.setItem('echo_recent_analyses', JSON.stringify(analysisHistory));
+                currentAnalysisId = newAnalysis.id;
+                
+                populateUI(resultData, null);
             }
-            
-            extractedText.value = extractResult.text || 'No text extracted.';
-            if (extractResult.confidence) {
-                resultMeta.textContent = `Confidence: ${extractResult.confidence}%`;
-            } else if (extractResult.pageCount) {
-                resultMeta.textContent = `Pages: ${extractResult.pageCount}`;
-            } else {
-                resultMeta.textContent = '';
-            }
+            renderHistory();
 
         } catch (error) {
             console.error('Error:', error);
             showErrorBanner(error.message);
             showStatus('', '');
             submitBtn.disabled = false;
-            textInput.placeholder = 'Ready to analyze...';
+            textInput.placeholder = compareContext ? 'Upload a modified document for comparison...' : 'Ready to analyze...';
         }
     });
 
@@ -466,10 +553,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     startOverBtn.addEventListener('click', () => {
+        if (currentAnalysisId) {
+            compareContext = analysisHistory.find(a => a.id === currentAnalysisId);
+        }
         resultPanel.classList.add('hidden');
         centerGreeting.classList.remove('hidden');
         inputWrapper.classList.remove('hidden');
-        removeBtn.click(); // Resets file input and submit button state
+        removeBtn.click();
     });
 
     // Tab Switching Logic

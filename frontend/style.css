@@ -37,6 +37,16 @@ body {
     padding: 1rem;
     box-sizing: border-box;
     border-right: 1px solid var(--border-color);
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.sidebar.collapsed {
+    width: 0;
+    padding-left: 0;
+    padding-right: 0;
+    border-right: none;
 }
 
 .sidebar-header {
@@ -180,6 +190,12 @@ body {
 .chat-item:hover {
     background-color: var(--bg-hover);
     color: var(--text-primary);
+}
+
+.chat-item.active {
+    background-color: var(--bg-hover);
+    color: var(--text-primary);
+    border-left: 2px solid var(--accent);
 }
 
 .user-profile {
@@ -375,7 +391,7 @@ body {
 
 .input-actions-row {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: center;
     margin-top: 0.5rem;
 }
@@ -724,6 +740,35 @@ body {
     color: var(--text-primary);
     min-width: 60px;
     text-align: right;
+}
+
+.score-display {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.previous-score-value {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    text-decoration: line-through;
+}
+
+.score-diff {
+    font-size: 0.85rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+.score-diff.positive {
+    background-color: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+}
+
+.score-diff.negative {
+    background-color: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
 }
 
 .score-breakdown {
