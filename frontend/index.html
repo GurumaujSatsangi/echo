@@ -111,12 +111,33 @@
                 <!-- Removed plan info -->
             </div>
 
-            <div class="center-greeting">
+            <!-- Error Banner -->
+            <div id="errorBanner" class="error-banner hidden">
+                <span id="errorMessage">An error occurred.</span>
+                <button type="button" id="dismissErrorBtn" class="dismiss-btn">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <div id="centerGreeting" class="center-greeting">
                 <span class="greeting-icon">✽</span>
                 <h1>Engagement & Content Enhancement Optimizer</h1>
             </div>
 
-            <div class="input-container-wrapper">
+            <!-- Result Panel -->
+            <div id="resultPanel" class="result-panel hidden">
+                <div class="result-header">
+                    <h2>Extraction Results</h2>
+                    <span id="resultMeta" class="result-meta"></span>
+                    <button type="button" id="startOverBtn" class="start-over-btn">Start Over</button>
+                </div>
+                <textarea id="extractedText" class="extracted-text-area" readonly></textarea>
+            </div>
+
+            <div id="inputWrapper" class="input-container-wrapper">
                 <div class="chat-input-container">
                     <div id="fileInfo" class="file-chip hidden">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -165,7 +186,10 @@
                         </div>
                     </div>
                 </div>
-                <div id="statusMessage" class="status-message"></div>
+                <div id="statusContainer" class="status-container hidden">
+                    <div class="spinner"></div>
+                    <div id="statusMessage" class="status-message"></div>
+                </div>
                 <div class="disclaimer">Uploading files here uses the Social Content Analyzer backend.</div>
             </div>
 

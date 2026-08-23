@@ -44,17 +44,21 @@ const upload = multer({
 const uploadMiddleware = (req, res, next) => {
   upload.single('document')(req, res, (err) => {
     if (err instanceof multer.MulterError) {
-      return res.status(400).json({ error: err.message });
+      err.status = 400;
+      return next(err);
     } else if (err) {
-      return res.status(400).json({ error: err.message });
+      err.status = 400;
+      return next(err);
     }
     next();
   });
 };
 
-app.post('/api/upload', uploadMiddleware, (req, res) => {
+app.post('/api/upload', uploadMiddleware, (req, res, next) => {
   if (!req.file) {
-    return res.status(400).json({ error: 'No file uploaded.' });
+    const err = new Error('No file uploaded.');
+    err.status = 400;
+    return next(err);
   }
 
   res.json({
@@ -70,6 +74,16 @@ app.post('/api/extract', extractText);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: "ok" });
+});
+
+// Centralized error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Centralized Error Handling:', err.message);
+  const status = err.status || 500;
+  res.status(status).json({
+    error: err.message || 'Internal Server Error',
+    code: err.code || 'SERVER_ERROR'
+  });
 });
 
 app.listen(PORT, () => {

@@ -7,7 +7,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const removeBtn = document.getElementById('removeBtn');
     const submitBtn = document.getElementById('submitBtn');
     const statusMessage = document.getElementById('statusMessage');
+    const statusContainer = document.getElementById('statusContainer');
     const textInput = document.getElementById('textInput');
+    
+    // New UI Elements
+    const errorBanner = document.getElementById('errorBanner');
+    const errorMessage = document.getElementById('errorMessage');
+    const dismissErrorBtn = document.getElementById('dismissErrorBtn');
+    const centerGreeting = document.getElementById('centerGreeting');
+    const resultPanel = document.getElementById('resultPanel');
+    const resultMeta = document.getElementById('resultMeta');
+    const startOverBtn = document.getElementById('startOverBtn');
+    const extractedText = document.getElementById('extractedText');
+    const inputWrapper = document.getElementById('inputWrapper');
 
     let currentFile = null;
 
@@ -29,7 +41,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     ['dragenter', 'dragover'].forEach(eventName => {
         document.body.addEventListener(eventName, (e) => {
-            // Only show dropzone if dragging a file
             if (e.dataTransfer.types.includes('Files')) {
                 dropZone.classList.remove('hidden');
             }
@@ -38,7 +49,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     ['dragleave', 'drop'].forEach(eventName => {
         document.body.addEventListener(eventName, (e) => {
-            // Hide dropzone if leaving window or dropping
             if (e.type === 'drop' || (e.relatedTarget === null && e.type === 'dragleave')) {
                 dropZone.classList.add('hidden');
             }
@@ -61,15 +71,14 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const file = files[0];
         
-        // Basic validation
         const validTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg'];
         if (!validTypes.includes(file.type)) {
-            showStatus('Invalid file type. Please upload a PDF, PNG, or JPEG.', 'error');
+            showErrorBanner('Invalid file type. Please upload a PDF, PNG, or JPEG.');
             return;
         }
 
         if (file.size > 10 * 1024 * 1024) {
-            showStatus('File is too large. Max size is 10MB.', 'error');
+            showErrorBanner('File is too large. Max size is 10MB.');
             return;
         }
 
@@ -79,7 +88,8 @@ document.addEventListener('DOMContentLoaded', () => {
         fileInfo.classList.remove('hidden');
         submitBtn.disabled = false;
         submitBtn.querySelector('svg').style.stroke = 'var(--bg-main)';
-        statusMessage.textContent = '';
+        showStatus('', '');
+        errorBanner.classList.add('hidden');
         textInput.placeholder = 'Ready to analyze...';
     }
 
@@ -89,7 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
         fileInfo.classList.add('hidden');
         submitBtn.disabled = true;
         submitBtn.querySelector('svg').style.stroke = 'currentColor';
-        statusMessage.textContent = '';
+        showStatus('', '');
         textInput.placeholder = 'Upload a document for analysis...';
     });
 
@@ -97,6 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!currentFile) return;
 
         submitBtn.disabled = true;
+        errorBanner.classList.add('hidden');
         textInput.placeholder = 'Uploading...';
         showStatus('Uploading...', '');
 
@@ -104,35 +115,89 @@ document.addEventListener('DOMContentLoaded', () => {
         formData.append('document', currentFile);
 
         try {
-            const response = await fetch('/api/upload', {
+            // Upload phase
+            const uploadResponse = await fetch('/api/upload', {
                 method: 'POST',
                 body: formData
             });
 
-            const result = await response.json();
+            const uploadResult = await uploadResponse.json();
 
-            if (!response.ok) {
-                throw new Error(result.error || 'Upload failed');
+            if (!uploadResponse.ok) {
+                throw new Error(uploadResult.error || 'Upload failed');
             }
 
-            showStatus('File uploaded successfully!', 'success');
-            console.log('Upload success:', result);
-            textInput.placeholder = 'Upload complete.';
+            // Extraction phase
+            showStatus('Extracting text...', '');
+            textInput.placeholder = 'Extracting text...';
+            
+            const extractResponse = await fetch('/api/extract', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    filePath: uploadResult.fileId,
+                    mimeType: uploadResult.mimeType
+                })
+            });
+
+            const extractResult = await extractResponse.json();
+
+            if (!extractResponse.ok) {
+                throw new Error(extractResult.error || 'Extraction failed');
+            }
+
+            // Success phase
+            showStatus('', '');
+            inputWrapper.classList.add('hidden');
+            centerGreeting.classList.add('hidden');
+            resultPanel.classList.remove('hidden');
+            
+            extractedText.value = extractResult.text || 'No text extracted.';
+            if (extractResult.confidence) {
+                resultMeta.textContent = `Confidence: ${extractResult.confidence}%`;
+            } else if (extractResult.pageCount) {
+                resultMeta.textContent = `Pages: ${extractResult.pageCount}`;
+            } else {
+                resultMeta.textContent = '';
+            }
+
         } catch (error) {
             console.error('Error:', error);
-            showStatus(error.message, 'error');
+            showErrorBanner(error.message);
+            showStatus('', '');
             submitBtn.disabled = false;
             textInput.placeholder = 'Ready to analyze...';
         }
     });
 
     function showStatus(message, type) {
-        statusMessage.textContent = message;
-        statusMessage.className = 'status-message';
-        if (type === 'error') {
-            statusMessage.classList.add('status-error');
-        } else if (type === 'success') {
-            statusMessage.classList.add('status-success');
+        if (message) {
+            statusContainer.classList.remove('hidden');
+            statusMessage.textContent = message;
+            statusMessage.className = 'status-message';
+            if (type === 'error') {
+                statusMessage.classList.add('status-error');
+            } else if (type === 'success') {
+                statusMessage.classList.add('status-success');
+            }
+        } else {
+            statusContainer.classList.add('hidden');
         }
     }
+
+    function showErrorBanner(message) {
+        errorMessage.textContent = message;
+        errorBanner.classList.remove('hidden');
+    }
+
+    dismissErrorBtn.addEventListener('click', () => {
+        errorBanner.classList.add('hidden');
+    });
+
+    startOverBtn.addEventListener('click', () => {
+        resultPanel.classList.add('hidden');
+        centerGreeting.classList.remove('hidden');
+        inputWrapper.classList.remove('hidden');
+        removeBtn.click(); // Resets file input and submit button state
+    });
 });
