@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const removeBtn = document.getElementById('removeBtn');
     const submitBtn = document.getElementById('submitBtn');
     const statusMessage = document.getElementById('statusMessage');
+    const textInput = document.getElementById('textInput');
 
     let currentFile = null;
 
@@ -16,14 +17,9 @@ document.addEventListener('DOMContentLoaded', () => {
         fileInput.click();
     });
 
-    // Also trigger on drop zone click
-    dropZone.addEventListener('click', () => {
-        fileInput.click();
-    });
-
-    // Drag and drop events
+    // Drag and drop events on document body
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-        dropZone.addEventListener(eventName, preventDefaults, false);
+        document.body.addEventListener(eventName, preventDefaults, false);
     });
 
     function preventDefaults(e) {
@@ -32,18 +28,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     ['dragenter', 'dragover'].forEach(eventName => {
-        dropZone.addEventListener(eventName, () => {
-            dropZone.classList.add('dragover');
+        document.body.addEventListener(eventName, (e) => {
+            // Only show dropzone if dragging a file
+            if (e.dataTransfer.types.includes('Files')) {
+                dropZone.classList.remove('hidden');
+            }
         }, false);
     });
 
     ['dragleave', 'drop'].forEach(eventName => {
-        dropZone.addEventListener(eventName, () => {
-            dropZone.classList.remove('dragover');
+        document.body.addEventListener(eventName, (e) => {
+            // Hide dropzone if leaving window or dropping
+            if (e.type === 'drop' || (e.relatedTarget === null && e.type === 'dragleave')) {
+                dropZone.classList.add('hidden');
+            }
         }, false);
     });
 
     dropZone.addEventListener('drop', (e) => {
+        dropZone.classList.add('hidden');
         const dt = e.dataTransfer;
         const files = dt.files;
         handleFiles(files);
@@ -73,26 +76,28 @@ document.addEventListener('DOMContentLoaded', () => {
         currentFile = file;
         fileName.textContent = file.name;
         
-        dropZone.classList.add('hidden');
         fileInfo.classList.remove('hidden');
-        submitBtn.classList.remove('hidden');
+        submitBtn.disabled = false;
+        submitBtn.querySelector('svg').style.stroke = 'var(--bg-main)';
         statusMessage.textContent = '';
+        textInput.placeholder = 'Ready to analyze...';
     }
 
     removeBtn.addEventListener('click', () => {
         currentFile = null;
         fileInput.value = '';
-        dropZone.classList.remove('hidden');
         fileInfo.classList.add('hidden');
-        submitBtn.classList.add('hidden');
+        submitBtn.disabled = true;
+        submitBtn.querySelector('svg').style.stroke = 'currentColor';
         statusMessage.textContent = '';
+        textInput.placeholder = 'Upload a document for analysis...';
     });
 
     submitBtn.addEventListener('click', async () => {
         if (!currentFile) return;
 
         submitBtn.disabled = true;
-        submitBtn.textContent = 'Uploading...';
+        textInput.placeholder = 'Uploading...';
         showStatus('Uploading...', '');
 
         const formData = new FormData();
@@ -112,14 +117,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             showStatus('File uploaded successfully!', 'success');
             console.log('Upload success:', result);
-            
-            // For now, keep the file info visible but disable submit
-            submitBtn.textContent = 'Uploaded';
+            textInput.placeholder = 'Upload complete.';
         } catch (error) {
             console.error('Error:', error);
             showStatus(error.message, 'error');
             submitBtn.disabled = false;
-            submitBtn.textContent = 'Upload & Analyze';
+            textInput.placeholder = 'Ready to analyze...';
         }
     });
 
