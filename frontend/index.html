@@ -5,9 +5,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Social Content Analyzer</title>
     <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
-    <h1>Social Content Analyzer</h1>
+    <div class="container">
+        <h1>Analyze Your Content</h1>
+        
+        <div class="upload-container" id="uploadContainer">
+            <div class="drop-zone" id="dropZone">
+                <div class="upload-icon">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                </div>
+                <h3>Drag & Drop your file here</h3>
+                <p>or</p>
+                <button type="button" class="browse-btn" id="browseBtn">Browse Files</button>
+                <input type="file" id="fileInput" accept=".pdf,.png,.jpg,.jpeg" hidden>
+                <p class="file-hint">Supported formats: PDF, PNG, JPG (Max 10MB)</p>
+            </div>
+            
+            <div class="file-info hidden" id="fileInfo">
+                <div class="file-details">
+                    <svg class="file-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
+                    <span id="fileName">filename.pdf</span>
+                </div>
+                <button type="button" class="remove-btn" id="removeBtn">Remove</button>
+            </div>
+            
+            <button type="button" class="submit-btn hidden" id="submitBtn">Upload & Analyze</button>
+            <div id="statusMessage" class="status-message"></div>
+        </div>
+    </div>
     <script src="script.js"></script>
 </body>
 </html>
