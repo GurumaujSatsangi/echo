@@ -146,11 +146,47 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(extractResult.error || 'Extraction failed');
             }
 
+            // Classification Phase
+            showStatus('Analyzing content...', '');
+            textInput.placeholder = 'Analyzing content...';
+
+            const overviewCard = document.getElementById('contentOverviewCard');
+            const categoryBadge = document.getElementById('categoryBadge');
+            const toneBadge = document.getElementById('toneBadge');
+            const summaryText = document.getElementById('summaryText');
+
+            let classifyResult = null;
+            try {
+                const classifyResponse = await fetch('/api/classify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: extractResult.text })
+                });
+
+                if (classifyResponse.ok) {
+                    classifyResult = await classifyResponse.json();
+                } else {
+                    const errObj = await classifyResponse.json();
+                    console.warn('Classification API error:', errObj);
+                }
+            } catch (err) {
+                console.warn('Network error during classification:', err);
+            }
+
             // Success phase
             showStatus('', '');
             inputWrapper.classList.add('hidden');
             centerGreeting.classList.add('hidden');
             resultPanel.classList.remove('hidden');
+
+            if (classifyResult) {
+                categoryBadge.textContent = classifyResult.category.replace('_', ' ');
+                toneBadge.textContent = classifyResult.tone;
+                summaryText.textContent = classifyResult.summary;
+                overviewCard.classList.remove('hidden');
+            } else {
+                overviewCard.classList.add('hidden');
+            }
             
             extractedText.value = extractResult.text || 'No text extracted.';
             if (extractResult.confidence) {

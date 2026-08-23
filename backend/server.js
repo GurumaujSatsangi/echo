@@ -72,6 +72,9 @@ app.post('/api/upload', uploadMiddleware, (req, res, next) => {
 const { extractText } = require('./controllers/extractController');
 app.post('/api/extract', extractText);
 
+const { classifyText } = require('./controllers/classifyController');
+app.post('/api/classify', classifyText);
+
 app.get('/api/health', (req, res) => {
   res.json({ status: "ok" });
 });
