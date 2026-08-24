@@ -10,16 +10,23 @@
 
 The application follows a simple client-server architecture:
 
-1. **Frontend (User Interface):** A responsive HTML/CSS/JS interface where users can upload PDFs or Images. It handles drag-and-drop uploads, maintains a history of past analyses, and visually displays the AI feedback, scores, and rewrites.
-2. **Backend (Node.js & Express):** The central server that processes API requests. It handles file uploads, routes tasks, and orchestrates calls to external services.
-3. **Document Parser:** Extracts raw text from uploaded files.
-   - Parses PDFs using `pdf-parse`.
-   - Uses **OpenAI Vision** (`gpt-4o-mini`) to perform high-accuracy Optical Character Recognition (OCR) on graphical images and posters.
-4. **OpenAI API Integration:** The core intelligence layer. It uses large language models to:
-   - **Classify:** Determine content category, tone, and generate summaries.
-   - **Score & Edit:** Evaluate text on Grammar, Clarity, Engagement, and Tone Fit. Suggests specific structural edits and predicts a revised score.
-   - **Rewrite:** Generate platform-specific posts for Twitter (X), LinkedIn, and Instagram.
-   - **Suggest:** Provide optimal posting times, hashtags, and background audio moods.
+1. **Frontend (User Interface):** A responsive HTML/CSS/JS interface where users can upload PDFs or Images.
+2. **Backend (Node.js & Express):** The central server that processes API requests, handles file uploads via `multer`, and routes tasks to the controllers.
+3. **Document Parser:** Extracts raw text from uploaded files using `pdf-parse` (for PDF documents) and OpenAI Vision via `gpt-4o-mini` (for Image OCR).
+4. **OpenAI API Integration:** The core intelligence layer powered by `gpt-4o-mini`.
+
+## 🔄 Full Application Workflow
+
+When a user interacts with **echo**, the application processes the data through a sequential pipeline:
+
+1. **Upload Phase:** The user uploads a PDF or Image (like a marketing poster) via the Frontend. The file is sent as `multipart/form-data` to the Backend, where `multer` temporarily saves it to the `uploads/` directory.
+2. **Extraction Phase:** The Backend determines the MIME type. If it's a PDF, `pdf-parse` extracts the text. If it's an image, the file is converted to Base64 and sent to the OpenAI Vision API (`gpt-4o-mini`) to perform high-accuracy Optical Character Recognition (OCR). The raw extracted text is returned.
+3. **Classification Phase:** The extracted text is sent to the OpenAI API (`gpt-4o-mini`) with a strict JSON format constraint to determine the content's **Category** (e.g., ADVERTISEMENT), **Tone**, and a short summary.
+4. **Scoring Phase:** The backend sends the text and the newly discovered classification context back to the OpenAI API. The AI acts as an expert copy editor, returning a quality score (0-100), a breakdown across Grammar, Clarity, Engagement, and Tone Fit, and up to 5 suggested inline edits. 
+    - *Revision Loop:* If the user is uploading a revision to a previously scored document, the backend also passes the previous score and suggestions. The AI evaluates if the changes were applied and boosts the score accordingly.
+5. **Rewrites Phase:** The OpenAI API generates platform-specific, optimized rewrites of the text for Twitter (X), LinkedIn, and Instagram.
+6. **Suggestions Phase:** The OpenAI API generates creative suggestions, including best posting times, hashtags, and a suggested background audio mood for reels/shorts.
+7. **Display Results:** The Backend compiles all the JSON responses and sends them back to the Frontend. The UI updates dynamically, rendering the score charts, the exact text diffs (old vs new suggestions), and the platform rewrites.
 
 ---
 
