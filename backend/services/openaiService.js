@@ -66,4 +66,50 @@ async function callOpenAI(systemPrompt, userPrompt, options = {}) {
     }
 }
 
-module.exports = { callOpenAI };
+async function callOpenAIVision(systemPrompt, userPrompt, base64Image, options = {}) {
+    const { jsonMode = false, retries = 1 } = options;
+
+    let attempt = 0;
+    while (attempt <= retries) {
+        try {
+            const completion = await openai.chat.completions.create({
+                model: 'gpt-4o-mini', // gpt-4o-mini supports vision
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: [
+                        { type: 'text', text: userPrompt },
+                        { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${base64Image}` } }
+                    ]}
+                ],
+                ...(jsonMode && { response_format: { type: 'json_object' } })
+            });
+
+            const content = completion.choices[0].message.content;
+
+            if (jsonMode) {
+                const cleanedContent = cleanJsonOutput(content);
+                try {
+                    return JSON.parse(cleanedContent);
+                } catch (parseError) {
+                    throw new Error(`Failed to parse OpenAI JSON response. Raw output: ${content}`);
+                }
+            }
+
+            return content;
+        } catch (error) {
+            attempt++;
+            const isTransientError = 
+                error.status === 429 || 
+                (error.status >= 500 && error.status < 600);
+                
+            if (!isTransientError || attempt > retries) {
+                console.error(`OpenAI Vision API Error after ${attempt} attempts:`, error.message);
+                throw error;
+            }
+            console.warn(`OpenAI Vision call failed (attempt ${attempt}). Retrying...`);
+            await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+        }
+    }
+}
+
+module.exports = { callOpenAI, callOpenAIVision };

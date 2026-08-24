@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const pdfParse = require('pdf-parse');
-const { createWorker } = require('tesseract.js');
+const { callOpenAIVision } = require('../services/openaiService');
 
 async function extractFromPdf(filePath) {
     try {
@@ -18,34 +18,25 @@ async function extractFromPdf(filePath) {
 }
 
 async function extractFromImage(filePath) {
-    let worker = null;
     try {
-        worker = await createWorker('eng');
+        const imageBuffer = fs.readFileSync(filePath);
+        const base64Image = imageBuffer.toString('base64');
         
-        const recognizePromise = worker.recognize(filePath);
-        const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('TIMEOUT')), 30000)
-        );
-
-        const result = await Promise.race([recognizePromise, timeoutPromise]);
+        const systemPrompt = `You are a highly accurate Optical Character Recognition (OCR) system. 
+Your task is to extract all the text visible in the provided image exactly as it appears. 
+Do not add any descriptions, summaries, or Markdown formatting. 
+Return ONLY the raw extracted text.`;
+        const userPrompt = `Please extract all the text from this image.`;
         
-        await worker.terminate();
-
+        const text = await callOpenAIVision(systemPrompt, userPrompt, base64Image);
+        
         return {
-            text: result.data.text,
-            confidence: result.data.confidence
+            text: text,
+            confidence: 90 // Approximating high confidence for vision model
         };
     } catch (error) {
-        if (worker) {
-            await worker.terminate().catch(() => {});
-        }
-        if (error.message === 'TIMEOUT') {
-            const err = new Error('Image extraction timed out (30s). The image might be too complex or unclear.');
-            err.status = 504;
-            throw err;
-        }
-        console.error("OCR error:", error);
-        throw new Error('Failed to extract text from image. It may be unsupported or corrupted.');
+        console.error("OpenAI Vision OCR error:", error);
+        throw new Error('Failed to extract text from image using Vision API.');
     }
 }
 

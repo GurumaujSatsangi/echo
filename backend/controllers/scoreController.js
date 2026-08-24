@@ -30,7 +30,7 @@ CRITICAL RULES:
 
 const scoreText = async (req, res, next) => {
     try {
-        const { text, classification } = req.body;
+        const { text, classification, previousScoreContext } = req.body;
 
         if (!text || typeof text !== 'string') {
             const err = new Error('Text is required for scoring.');
@@ -39,7 +39,15 @@ const scoreText = async (req, res, next) => {
         }
 
         // Pass classification context to help with tone_fit evaluation
-        const userPrompt = `Content Category: ${classification?.category || 'unknown'}\nContent Tone: ${classification?.tone || 'unknown'}\n\nHere is the text to evaluate:\n\n${text}`;
+        let userPrompt = `Content Category: ${classification?.category || 'unknown'}\nContent Tone: ${classification?.tone || 'unknown'}\n\nHere is the text to evaluate:\n\n${text}`;
+
+        if (previousScoreContext) {
+            userPrompt += `\n\nThis is a revision of a previous draft. The previous draft received a score of ${previousScoreContext.score}/100.
+The previous suggestions were:
+${JSON.stringify(previousScoreContext.suggested_edits || [], null, 2)}
+The predicted score if changes were applied was ${previousScoreContext.predicted_score}/100.
+If the user applied the suggested edits, their score should reflect the predicted score (or higher) based on the improvements. Acknowledge the applied changes by giving them a higher score and do not penalize them for issues already addressed or suggest the exact same changes again unless they were incorrectly applied. Evaluate the current text with the assumption that applying previous suggestions should yield at least the previously predicted score.`;
+        }
 
         try {
             const result = await callOpenAI(systemPrompt, userPrompt, { jsonMode: true });

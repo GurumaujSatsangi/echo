@@ -23,6 +23,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const chatsList = document.getElementById('chatsList');
     const newChatBtn = document.querySelector('.new-chat-btn');
     
+    const revisionBanner = document.getElementById('revisionBanner');
+    const revisionTitle = document.getElementById('revisionTitle');
+    const cancelRevisionBtn = document.getElementById('cancelRevisionBtn');
+    
     const sidebar = document.getElementById('sidebar');
     const collapseSidebarBtn = document.getElementById('collapseSidebarBtn');
     const expandSidebarBtn = document.getElementById('expandSidebarBtn');
@@ -63,6 +67,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!analysis) return;
         currentAnalysisId = id;
         compareContext = null;
+        revisionBanner.classList.add('hidden');
+        textInput.placeholder = 'Upload a document for analysis...';
         renderHistory();
         
         populateUI(analysis.data, null);
@@ -78,8 +84,17 @@ document.addEventListener('DOMContentLoaded', () => {
         centerGreeting.classList.remove('hidden');
         inputWrapper.classList.remove('hidden');
         textInput.placeholder = 'Upload a document for analysis...';
+        revisionBanner.classList.add('hidden');
         if(removeBtn) removeBtn.click();
     });
+
+    if (cancelRevisionBtn) {
+        cancelRevisionBtn.addEventListener('click', () => {
+            compareContext = null;
+            revisionBanner.classList.add('hidden');
+            textInput.placeholder = 'Upload a document for analysis...';
+        });
+    }
 
     // Trigger file input on click
     browseBtn.addEventListener('click', (e) => {
@@ -409,13 +424,19 @@ document.addEventListener('DOMContentLoaded', () => {
             let scoreResult = null;
             if (classifyResult) {
                 try {
+                    const scorePayload = { 
+                        text: extractResult.text,
+                        classification: classifyResult
+                    };
+                    
+                    if (compareContext && compareContext.data && compareContext.data.scoreResult) {
+                        scorePayload.previousScoreContext = compareContext.data.scoreResult;
+                    }
+
                     const scoreResponse = await fetch('/api/score', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
-                            text: extractResult.text,
-                            classification: classifyResult
-                        })
+                        body: JSON.stringify(scorePayload)
                     });
 
                     if (scoreResponse.ok) {
@@ -504,6 +525,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 populateUI(resultData, compareContext.data);
                 compareContext = null;
+                revisionBanner.classList.add('hidden');
             } else {
                 const newAnalysis = {
                     id: Date.now(),
@@ -555,6 +577,8 @@ document.addEventListener('DOMContentLoaded', () => {
     startOverBtn.addEventListener('click', () => {
         if (currentAnalysisId) {
             compareContext = analysisHistory.find(a => a.id === currentAnalysisId);
+            revisionTitle.textContent = compareContext.title || 'Previous Analysis';
+            revisionBanner.classList.remove('hidden');
         }
         resultPanel.classList.add('hidden');
         centerGreeting.classList.remove('hidden');
