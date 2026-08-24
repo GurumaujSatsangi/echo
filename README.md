@@ -1,6 +1,12 @@
-# echo - Social Content Analyzer
+# ECHO - Engagement & Content Enhancement Optimizer
 
 **echo** is an Engagement & Content Enhancement Optimizer. It analyzes uploaded documents and images (like marketing posters or drafts) and provides actionable insights, a quality score, grammar/clarity fixes, and platform-optimized rewrites to maximize engagement on social media.
+
+**Live URL:** [https://echo.gurumaujsatsangi.in](https://echo.gurumaujsatsangi.in)
+
+<video src="https://www.gurumaujsatsangi.in/echo/echo.mp4" controls width="100%"></video>
+
+*(Facing Issues? [Click Here](https://www.gurumaujsatsangi.in/echo/echo.mp4) to watch the video)*
 
 ---
 
