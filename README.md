@@ -4,7 +4,7 @@
 
 **Live URL:** [https://echo.gurumaujsatsangi.in](https://echo.gurumaujsatsangi.in)
 
-<video src="https://www.gurumaujsatsangi.in/echo/echo.mp4" controls width="100%"></video>
+[![Watch the Demo](https://img.shields.io/badge/Play-Demo_Video-red?style=for-the-badge&logo=youtube)](https://www.gurumaujsatsangi.in/echo/echo.mp4)
 
 *(Facing Issues? [Click Here](https://www.gurumaujsatsangi.in/echo/echo.mp4) to watch the video)*
 
